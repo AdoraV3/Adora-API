@@ -5,7 +5,6 @@ import express from 'express';
 import gtfsRoutes from './routes/gtfs.routes.js';
 import aviationRoutes from './routes/aviation.routes.js';
 import intentRoutes from './routes/intent.routes.js';
-import { initVapiListener } from './services/vapi.js';
 
 const app = express();
 
@@ -17,5 +16,4 @@ app.use('/intent', intentRoutes);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  initVapiListener();
 });
