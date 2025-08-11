@@ -2,7 +2,6 @@ import { getAllRoutes, getAllStops, getAllTrips, getStopById, getRouteById, getT
 import { getFlightsByAirport } from './aviation.controller.js';
 import { parseStopIdFromQuery, parseAirportCode } from '../utils/parser.js';
 
-// Map keywords to their GTFS-related handlers
 const gtfsIntentMap = {
   route: getAllRoutes,
   stop: getAllStops,
@@ -13,7 +12,6 @@ const gtfsIntentMap = {
   terminal: getAllStops
 };
 
-// Map keywords to their AviationStack-related handlers
 const flightIntentMap = {
   flight: getFlightsByAirport,
   airline: getFlightsByAirport,
@@ -21,37 +19,38 @@ const flightIntentMap = {
   air: getFlightsByAirport
 };
 
-// Main function to handle voice query based on detected keywords and parsed IDs
 export const handleVoiceQuery = (req, res) => {
-  const { query } = req.query;
+  const { message } = req.body;
 
-  if (!query) {
-    return res.status(400).json({ error: 'Missing query parameter' });
+  if (!message || typeof message !== "string") {
+    return res.status(400).json({ error: "Missing or invalid voice message" });
   }
 
-  const lowerQuery = query.toLowerCase();
-  const stopId = parseStopIdFromQuery(query);
-  const airportCode = parseAirportCode(query);
+  const lowerMessage = message.toLowerCase();
+  const stopId = parseStopIdFromQuery(message);
+  const airportCode = parseAirportCode(message);
 
   for (const [keyword, handler] of Object.entries(flightIntentMap)) {
-    if (lowerQuery.includes(keyword)) {
+    if (lowerMessage.includes(keyword)) {
       if (airportCode) req.query.dep_iata = airportCode;
       return handler(req, res);
     }
   }
 
   for (const [keyword, handler] of Object.entries(gtfsIntentMap)) {
-    if (lowerQuery.includes(keyword)) {
+    if (lowerMessage.includes(keyword)) {
       if (stopId) req.params.stop_id = stopId;
       return handler(req, res);
     }
   }
 
-  return res.status(400).json({ error: 'Unable to determine query type or missing identifier' });
+  return res.status(400).json({
+    error: "Unable to determine query type or missing identifier",
+    originalMessage: message
+  });
 };
 
-// Pure intent classifier for logging or routing (optional)
-export const detectQueryIntent = (query) => {
+export const detectQueryIntent = (message) => {
   const roadKeywords = [
     'bus', 'train', 'subway', 'transit', 'commute', 'station',
     'stop', 'gtfs', 'go transit', 'up express', 'rail'
@@ -62,9 +61,9 @@ export const detectQueryIntent = (query) => {
     'departure', 'terminal', 'aviation'
   ];
 
-  const lowerQuery = query.toLowerCase();
-  const isRoad = roadKeywords.some(keyword => lowerQuery.includes(keyword));
-  const isFlight = flightKeywords.some(keyword => lowerQuery.includes(keyword));
+  const lowerMessage = message.toLowerCase();
+  const isRoad = roadKeywords.some(keyword => lowerMessage.includes(keyword));
+  const isFlight = flightKeywords.some(keyword => lowerMessage.includes(keyword));
 
   if (isRoad && !isFlight) return 'road';
   if (isFlight && !isRoad) return 'flight';
