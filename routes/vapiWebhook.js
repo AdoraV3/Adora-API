@@ -19,7 +19,7 @@ router.post("/vapi-webhook", async (req, res) => {
       return res.status(401).json({ error: "Invalid secret token" });
     }
 
-    const customHeaderValue = req.headers[VAPI_CUSTOM_HEADER_KEY.toLowerCase()];
+    const customHeaderValue = req.headers[VAPI_CUSTOM_HEADER_KEY];
     if (!customHeaderValue || customHeaderValue !== VAPI_CUSTOM_HEADER_VALUE) {
       return res.status(403).json({ error: "Invalid or missing custom header" });
     }
