@@ -4,14 +4,14 @@ dotenv.config({ debug: false });
 import express from 'express';
 import gtfsRoutes from './routes/gtfs.routes.js';
 import aviationRoutes from './routes/aviation.routes.js';
-import intentRoutes from './routes/intent.routes.js';
+import vapiWebhookRoutes from './routes/vapiWebhook.js';
 
 const app = express();
 
 app.use(express.json());
 app.use('/api/gtfs', gtfsRoutes);
 app.use('/api/aviation', aviationRoutes);
-app.use('/intent', intentRoutes);
+app.use('/', vapiWebhookRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
