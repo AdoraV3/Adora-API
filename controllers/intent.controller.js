@@ -1,6 +1,18 @@
-import { getAllRoutes, getAllStops, getAllTrips, getStopById, getRouteById, getTripById, getStopsByTrip, getTripsByStop, getNextArrivals } from './gtfs.controller.js';
+import {
+  getAllRoutes,
+  getAllStops,
+  getAllTrips,
+  getStopById,
+  getRouteById,
+  getTripById,
+  getStopsByTrip,
+  getTripsByStop,
+  getNextArrivals
+} from './gtfs.controller.js';
+
 import { getFlightsByAirport } from './aviation.controller.js';
 import { parseStopIdFromQuery, parseAirportCode } from '../utils/parser.js';
+import { detectQueryIntent } from '../utils/detectQueryIntent.js';
 
 const gtfsIntentMap = {
   route: getAllRoutes,
@@ -19,53 +31,55 @@ const flightIntentMap = {
   air: getFlightsByAirport
 };
 
+function findHandler(message, intentMap) {
+  const lowerMsg = message.toLowerCase();
+  for (const [keyword, handler] of Object.entries(intentMap)) {
+    if (lowerMsg.includes(keyword)) {
+      return handler;
+    }
+  }
+  return null;
+}
+
 export const handleVoiceQuery = (req, res) => {
   const { message } = req.body;
 
-  if (!message || typeof message !== "string") {
-    return res.status(400).json({ error: "Missing or invalid voice message" });
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid voice message' });
   }
 
-  const lowerMessage = message.toLowerCase();
+  const intentType = detectQueryIntent(message);
   const stopId = parseStopIdFromQuery(message);
   const airportCode = parseAirportCode(message);
 
-  for (const [keyword, handler] of Object.entries(flightIntentMap)) {
-    if (lowerMessage.includes(keyword)) {
-      if (airportCode) req.query.dep_iata = airportCode;
+  try {
+    if (intentType === 'flight') {
+      const handler = findHandler(message, flightIntentMap) || getFlightsByAirport;
+
+      if (airportCode) {
+        req.query.dep_iata = airportCode;
+      }
+
       return handler(req, res);
     }
-  }
 
-  for (const [keyword, handler] of Object.entries(gtfsIntentMap)) {
-    if (lowerMessage.includes(keyword)) {
-      if (stopId) req.params.stop_id = stopId;
+    if (intentType === 'road') {
+      const handler = findHandler(message, gtfsIntentMap) || getAllStops;
+
+      if (stopId) {
+        req.params.stop_id = stopId;
+      }
+
       return handler(req, res);
     }
+
+    return res.status(400).json({
+      error: 'Unable to determine query type',
+      originalMessage: message
+    });
+
+  } catch (err) {
+    console.error('Error handling voice query:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  return res.status(400).json({
-    error: "Unable to determine query type or missing identifier",
-    originalMessage: message
-  });
-};
-
-export const detectQueryIntent = (message) => {
-  const roadKeywords = [
-    'bus', 'train', 'subway', 'transit', 'commute', 'station',
-    'stop', 'gtfs', 'go transit', 'up express', 'rail'
-  ];
-
-  const flightKeywords = [
-    'flight', 'airport', 'airline', 'plane', 'boarding', 'arrival',
-    'departure', 'terminal', 'aviation'
-  ];
-
-  const lowerMessage = message.toLowerCase();
-  const isRoad = roadKeywords.some(keyword => lowerMessage.includes(keyword));
-  const isFlight = flightKeywords.some(keyword => lowerMessage.includes(keyword));
-
-  if (isRoad && !isFlight) return 'road';
-  if (isFlight && !isRoad) return 'flight';
-  return 'unknown';
 };

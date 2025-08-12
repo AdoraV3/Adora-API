@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config({ debug: false });
 import axios from 'axios';
 const API_KEY = process.env.AVIATIONSTACK_KEY;
-const BASE_URL = 'http://api.aviationstack.com/v1';
+const BASE_URL = 'https://api.aviationstack.com/v1';
 
 
 export const getFlightsByAirport = async (req, res) => {
