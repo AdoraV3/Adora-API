@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 // Resolve the path to gtfs.sqlite
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = process.env.GTFS_DB_PATH || path.join(__dirname, '..', 'gtfs.sqlite');
+const dbPath = path.join(__dirname, '..', 'gtfs.sqlite');
 
 // Open database
 const db = new Database(dbPath);
