@@ -1,22 +1,36 @@
+// controllers/gtfs.controller.js
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Resolve the path to gtfs.sqlite
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, '..', 'gtfs.sqlite');
 
-// Open database
-const db = new Database(dbPath);
+// Default location inside the repo: data/gtfs.sqlite
+const defaultPath = path.join(__dirname, '..', 'data', 'gtfs.sqlite');
+
+// Allow override via env (useful on Render, e.g. /opt/render/project/src/data/gtfs.sqlite)
+const dbPath = process.env.GTFS_DB_PATH || defaultPath;
+
+console.log('[GTFS] Using DB at:', dbPath);
+
+// Fail fast if DB file is missing
+if (!fs.existsSync(dbPath)) {
+  throw new Error(`[GTFS] DB not found at ${dbPath}. Place data/gtfs.sqlite in your repo or set GTFS_DB_PATH.`);
+}
+
+// Open DB (readonly is safer in production)
+const db = new Database(dbPath, { readonly: true });
+
+// ---------- Handlers ----------
 
 export const getAllRoutes = (req, res) => {
   try {
     const stmt = db.prepare(`
       SELECT * FROM routes WHERE agency_id IN ('GO', 'UPExpress')
     `);
-    const routes = stmt.all();
-    res.json(routes);
+    res.json(stmt.all());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -24,16 +38,11 @@ export const getAllRoutes = (req, res) => {
 
 export const getRouteById = (req, res) => {
   const { route_id } = req.params;
-
   try {
     const stmt = db.prepare(`SELECT * FROM routes WHERE route_id = ?`);
-    const route = stmt.get(route_id);
-
-    if (!route) {
-      return res.status(404).json({ error: 'Route not found' });
-    }
-
-    res.json(route);
+    const row = stmt.get(route_id);
+    if (!row) return res.status(404).json({ error: 'Route not found' });
+    res.json(row);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -41,11 +50,9 @@ export const getRouteById = (req, res) => {
 
 export const getRoutesByAgency = (req, res) => {
   const { agency_id } = req.params;
-
   try {
     const stmt = db.prepare(`SELECT * FROM routes WHERE agency_id = ?`);
-    const routes = stmt.all(agency_id);
-    res.json(routes);
+    res.json(stmt.all(agency_id));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -61,8 +68,7 @@ export const getAllStops = (req, res) => {
       JOIN routes ON trips.route_id = routes.route_id
       WHERE routes.agency_id IN ('GO', 'UPExpress')
     `);
-    const stops = stmt.all();
-    res.json(stops);
+    res.json(stmt.all());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -70,16 +76,11 @@ export const getAllStops = (req, res) => {
 
 export const getStopById = (req, res) => {
   const { stop_id } = req.params;
-
   try {
     const stmt = db.prepare(`SELECT * FROM stops WHERE stop_id = ?`);
-    const stop = stmt.get(stop_id);
-
-    if (!stop) {
-      return res.status(404).json({ error: 'Stop not found' });
-    }
-
-    res.json(stop);
+    const row = stmt.get(stop_id);
+    if (!row) return res.status(404).json({ error: 'Stop not found' });
+    res.json(row);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -93,8 +94,7 @@ export const getAllTrips = (req, res) => {
       JOIN routes ON trips.route_id = routes.route_id
       WHERE routes.agency_id IN ('GO', 'UPExpress')
     `);
-    const trips = stmt.all();
-    res.json(trips);
+    res.json(stmt.all());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -102,16 +102,11 @@ export const getAllTrips = (req, res) => {
 
 export const getTripById = (req, res) => {
   const { trip_id } = req.params;
-
   try {
     const stmt = db.prepare(`SELECT * FROM trips WHERE trip_id = ?`);
-    const trip = stmt.get(trip_id);
-
-    if (!trip) {
-      return res.status(404).json({ error: 'Trip not found' });
-    }
-
-    res.json(trip);
+    const row = stmt.get(trip_id);
+    if (!row) return res.status(404).json({ error: 'Trip not found' });
+    res.json(row);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -119,7 +114,6 @@ export const getTripById = (req, res) => {
 
 export const getStopsByTrip = (req, res) => {
   const { trip_id } = req.params;
-
   try {
     const stmt = db.prepare(`
       SELECT s.*
@@ -128,13 +122,9 @@ export const getStopsByTrip = (req, res) => {
       WHERE st.trip_id = ?
       ORDER BY st.stop_sequence
     `);
-    const stops = stmt.all(trip_id);
-
-    if (!stops.length) {
-      return res.status(404).json({ error: 'No stops found for this trip' });
-    }
-
-    res.json(stops);
+    const rows = stmt.all(trip_id);
+    if (!rows.length) return res.status(404).json({ error: 'No stops found for this trip' });
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -142,7 +132,6 @@ export const getStopsByTrip = (req, res) => {
 
 export const getTripsByStop = (req, res) => {
   const { stop_id } = req.params;
-
   try {
     const stmt = db.prepare(`
       SELECT DISTINCT t.*
@@ -150,9 +139,7 @@ export const getTripsByStop = (req, res) => {
       JOIN trips t ON st.trip_id = t.trip_id
       WHERE st.stop_id = ?
     `);
-
-    const trips = stmt.all(stop_id);
-    res.json(trips);
+    res.json(stmt.all(stop_id));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -161,8 +148,7 @@ export const getTripsByStop = (req, res) => {
 export const getAllAgencies = (req, res) => {
   try {
     const stmt = db.prepare(`SELECT * FROM agency`);
-    const agencies = stmt.all();
-    res.json(agencies);
+    res.json(stmt.all());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -172,7 +158,6 @@ export const getNextArrivals = (req, res) => {
   const { stop_id } = req.params;
   const now = new Date();
   const currentTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
-
   try {
     const stmt = db.prepare(`
       SELECT st.*, t.trip_headsign, r.route_short_name, r.route_long_name
@@ -184,8 +169,7 @@ export const getNextArrivals = (req, res) => {
       ORDER BY st.arrival_time ASC
       LIMIT 10
     `);
-    const arrivals = stmt.all(stop_id, currentTime);
-    res.json(arrivals);
+    res.json(stmt.all(stop_id, currentTime));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -193,31 +177,25 @@ export const getNextArrivals = (req, res) => {
 
 export const getNextArrivalsByStopId = (req, res) => {
   const { stop_id } = req.params;
-
   try {
     const stmt = db.prepare(`
       SELECT st.*, t.route_id, t.service_id
       FROM stop_times st
       JOIN trips t ON st.trip_id = t.trip_id
       WHERE st.stop_id = ?
-      AND st.arrival_time != ''
+        AND st.arrival_time != ''
       ORDER BY st.arrival_time
       LIMIT 10
     `);
-
-    const arrivals = stmt.all(stop_id);
-
-    if (arrivals.length === 0) {
-      return res.status(404).json({ error: 'No arrivals found for this stop' });
-    }
-
-    res.json(arrivals);
+    const rows = stmt.all(stop_id);
+    if (rows.length === 0) return res.status(404).json({ error: 'No arrivals found for this stop' });
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-
+// (Optional export kept from your original)
 export const gtfsIntentMap = {
   'all routes': getAllRoutes,
   'routes by agency': getRoutesByAgency,
