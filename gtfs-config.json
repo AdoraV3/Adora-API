@@ -1,0 +1,25 @@
+{
+  "sqlitePath": "data/gtfs.sqlite",
+  "agencies": [
+    { "agency_key": "GO",         "path": "./gtfs_zips/GO-GTFS.zip" },
+    { "agency_key": "UPExpress",  "path": "./gtfs_zips/UP-GTFS.zip" },
+    { "agency_key": "TTC",        "path": "./gtfs_zips/google_transit.zip" },
+    { "agency_key": "DRT",        "path": "./gtfs_zips/GTFS_Durham_TXT.zip" },
+
+    { "agency_key": "MiWay",      "path": "./gtfs_zips/mdb-1993-202508280026.zip" },
+    { "agency_key": "Brampton",   "path": "./gtfs_zips/mdb-1994-202508130022.zip" },
+    { "agency_key": "YRT",        "path": "./gtfs_zips/mdb-1995-202508270029.zip" },
+    { "agency_key": "HSR",        "path": "./gtfs_zips/mdb-2618-202508230035.zip" },
+    { "agency_key": "Oakville",   "path": "./gtfs_zips/mdb-725-202506260106.zip" },
+    { "agency_key": "Burlington", "path": "./gtfs_zips/mdb-726-202508190119.zip" },
+
+    { "agency_key": "Other1",     "path": "./gtfs_zips/mdb-728-202508190044.zip" },
+    { "agency_key": "Other2",     "path": "./gtfs_zips/mdb-730-202508070030.zip" },
+    { "agency_key": "Other3",     "path": "./gtfs_zips/mdb-732-202508230116.zip" },
+
+    { "agency_key": "TTC_alt",    "path": "./gtfs_zips/Google_Transit.zip.zip" }
+  ],
+  "includeAgencyId": true,
+  "useAgencyIdField": true,
+  "ignoreDuplicates": true
+}
